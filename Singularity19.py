@@ -148,13 +148,6 @@ async def register(ctx):
     ]
     user_info_view4.add_item(CustomSelect("Relationship Speed", user_info_options9))
 
-    user_info_options10 = [
-        discord.SelectOption(label="Yes", value="Yes"),
-        discord.SelectOption(label="No", value="No"),
-        discord.SelectOption(label="Prefer not to say", value="Prefer not to say")
-    ]
-    user_info_view4.add_item(CustomSelect("NSFW Content", user_info_options10))
-
     user_info_options11 = [
         discord.SelectOption(label="Engineering", value="Engineering"),
         discord.SelectOption(label="Medical/Healthcare", value="Medical/Healthcare"),
@@ -260,13 +253,6 @@ async def register(ctx):
         discord.SelectOption(label="Prefer not to say", value="Prefer not to say")
     ]
     mate_info_view4.add_item(CustomSelect("Desired Relationship Speed", mate_info_options9))
-
-    mate_info_options10 = [
-        discord.SelectOption(label="Yes", value="Yes"),
-        discord.SelectOption(label="No", value="No"),
-        discord.SelectOption(label="Prefer not to say", value="Prefer not to say")
-    ]
-    mate_info_view4.add_item(CustomSelect("Desired NSFW Content", mate_info_options10))
 
     mate_info_options11 = [
         discord.SelectOption(label="Engineering", value="Engineering"),
@@ -398,16 +384,14 @@ def calculate_compatibility(user_prefs, mate_prefs):
     compatibility_score = 0
     total_preferences = 0
 
-    # Get user's sexuality, gender, NSFW, and age preferences
+    # Get user's sexuality, gender, and age preferences
     user_sexuality = user_prefs.get("Sexuality", ["Other"])[0]
     user_gender = user_prefs.get("Gender", ["Other"])[0]
-    user_nsfw = user_prefs.get("NSFW Content", ["Other"])[0]
     user_age = user_prefs.get("Age", ["Other"])[0]
 
-    # Get mate's sexuality, gender, NSFW, and age preferences
+    # Get mate's sexuality, gender, and age preferences
     mate_sexuality = mate_prefs.get("Sexuality", ["Other"])[0]
     mate_gender = mate_prefs.get("Gender", ["Other"])[0]
-    mate_nsfw = mate_prefs.get("NSFW Content", ["Other"])[0]
     mate_age = mate_prefs.get("Age", ["Other"])[0]
 
     # Check sexual compatibility
@@ -449,10 +433,6 @@ def calculate_compatibility(user_prefs, mate_prefs):
                 return 0
             elif user_sexuality == "Heterosexual" and mate_sexuality not in ["Male", "Female"]:
                 return 0
-
-    # Check NSFW content compatibility
-    if user_nsfw != mate_nsfw:
-        return 0
 
     # Check age compatibility
     if user_age != mate_age:
@@ -542,4 +522,4 @@ async def userview(ctx, username: str):
 
 
 
-bot.run("YOUR TOKEN HERE")
+bot.run("MTIzMzI3ODYxNjk5ODExNzQ2OQ.GW75Em.l-vy2sE2PRHD-zyC2S_3VkIIjDo3dIGvdmxW-E")
