@@ -10,7 +10,7 @@ intents = discord.Intents.default()
 import os
 
 # Bot instance
-bot = commands.Bot(command_prefix="..", intents=intents)
+bot = commands.Bot(command_prefix="/", intents=intents)
 
 # Dictionary to store user preferences
 user_preferences = {}
@@ -50,7 +50,8 @@ class CustomView(discord.ui.View):
 # Command to start the menu
 @bot.command()
 async def register(ctx):
-    await ctx.send("Welcome to the dating preference setup!")
+    embed = discord.Embed(title="Welcome to the dating preference setup!", color=0xff69b4)
+    await ctx.send(embed=embed)
 
     # Creating views
     user_info_view1 = CustomView()
@@ -82,12 +83,12 @@ async def register(ctx):
     user_info_view1.add_item(CustomSelect("Sexuality", user_info_options2))
 
     user_info_options3 = [
-        discord.SelectOption(label="13-17", value="13-17"),
-        discord.SelectOption(label="18-25", value="18-25"),
-        discord.SelectOption(label="26-35", value="26-35"),
-        discord.SelectOption(label="36-45", value="36-45"),
-        discord.SelectOption(label="46-55", value="46-55"),
-        discord.SelectOption(label="56+", value="56+")
+        discord.SelectOption(label="13", value="13"),
+        discord.SelectOption(label="14", value="14"),
+        discord.SelectOption(label="15", value="15"),
+        discord.SelectOption(label="16", value="16"),
+        discord.SelectOption(label="17", value="17"),
+        discord.SelectOption(label="N/A", value="N/A")
     ]
     user_info_view1.add_item(CustomSelect("Age", user_info_options3))
 
@@ -195,12 +196,12 @@ async def register(ctx):
     mate_info_view1.add_item(CustomSelect("Desired Sexuality", mate_info_options2))
 
     mate_info_options3 = [
-        discord.SelectOption(label="13-17", value="13-17"),
-        discord.SelectOption(label="18-25", value="18-25"),
-        discord.SelectOption(label="26-35", value="26-35"),
-        discord.SelectOption(label="36-45", value="36-45"),
-        discord.SelectOption(label="46-55", value="46-55"),
-        discord.SelectOption(label="56+", value="56+")
+        discord.SelectOption(label="13", value="13"),
+        discord.SelectOption(label="14", value="14"),
+        discord.SelectOption(label="15", value="15"),
+        discord.SelectOption(label="16", value="16"),
+        discord.SelectOption(label="17", value="17"),
+        discord.SelectOption(label="N/A", value="N/A")
     ]
     mate_info_view1.add_item(CustomSelect("Desired Age", mate_info_options3))
 
@@ -289,18 +290,24 @@ async def register(ctx):
     mate_info_view4.add_item(CustomSelect("Desired Typical Response Time", mate_info_options12))
 
     # Send the views
-    await ctx.send("**_________!WELCOME TO SINGULARITY!__________**")
-    await ctx.send("**_________<Your info>__________**")
+    embed = discord.Embed(title="Welcome to Singularity!", color=0xff69b4)
+    await ctx.send(embed=embed)
+
+    embed = discord.Embed(title="Your info", color=0xff69b4)
+    await ctx.send(embed=embed)
+
     await ctx.send(view=user_info_view1)
     await ctx.send(view=user_info_view2)
     await ctx.send(view=user_info_view3)
     await ctx.send(view=user_info_view4)
-    await ctx.send("**_________<Your perfect matches info>__________**")
+    embed = discord.Embed(title="Your perfect matches info", color=0xff69b4)
+    await ctx.send(embed=embed)
     await ctx.send(view=mate_info_view1)
     await ctx.send(view=mate_info_view2)
     await ctx.send(view=mate_info_view3)
     await ctx.send(view=mate_info_view4)
-    await ctx.send("**_________!---created by alerthi_there----!__________**")
+    embed = discord.Embed(title="Created by alterhi_there", color=0x597b99)
+    await ctx.send(embed=embed)
 
 
 # Command to save user preferences to a .txt file
@@ -311,7 +318,7 @@ async def save(ctx):
     print(username)
     print(user_prefs)
     if not user_prefs:
-        await ctx.send("User preferences not found. Please fill out the preferences using the .start command first.")
+        await ctx.send("User preferences not found. Please fill out the preferences using the /start command first.")
         return
 
     # Save preferences to a .txt file
@@ -323,94 +330,179 @@ async def save(ctx):
 
     await ctx.send(f"User preferences saved as {username}_preferences.txt")
 
+##---------------------------------------------------------------
 
-# Command to find a match and calculate compatibility score
-# Command for matching users
 @bot.command()
 async def matchme(ctx):
     username = ctx.author.name
-    user_prefs = user_preferences.get(username)
+    user_prefs = load_user_prefs(username)
     if not user_prefs:
-        await ctx.send("Please create an account by using the .register command first.")
+        await ctx.send("Please create an account by using the /register command first.")
         return
 
-    # Get user's sexuality and gender preferences
+    # Find potential matches
+    matches = []  # Store matches here
+    for file_name in os.listdir():
+        if file_name.endswith("_preferences.txt"):
+            mate_name = file_name[:-16]  # Extract mate's username from file name
+            if mate_name == username:
+                continue
+
+            mate_prefs = load_user_prefs(mate_name)
+            if mate_prefs:
+                compatibility_score = calculate_compatibility(user_prefs, mate_prefs)
+
+                # Add mate and score to matches
+                matches.append((mate_name, compatibility_score))
+
+    # Sort matches by compatibility score
+    matches.sort(key=lambda x: x[1], reverse=True)
+
+    # Select the top 10 matches that have a score greater than 0
+    top_matches = [(mate, score) for mate, score in matches if score > 0][:10]
+
+    if top_matches:
+        # Send the top matches
+        response = "Top 10 matches and their percentages:\n"
+        for mate, score in top_matches:
+            response += f"{mate}: {score}%\n"
+        await ctx.send(response)
+    else:
+        await ctx.send("No matches found.")
+
+
+
+# Function to load user preferences from file
+def load_user_prefs(username):
+    user_filename = f"{username}_preferences.txt"
+    if os.path.exists(user_filename):
+        user_prefs = {}
+        with open(user_filename, "r") as file:
+            lines = file.readlines()
+            category = None
+            for line in lines:
+                if ":" in line:
+                    category = line.split(":")[0].strip()
+                    user_prefs[category] = []
+                elif category:
+                    preference = line.strip().replace("-", "").replace("•", "")
+                    if preference:
+                        user_prefs[category].append(preference)
+        return user_prefs
+    else:
+        return None
+
+
+# Function to calculate compatibility score between two users
+def calculate_compatibility(user_prefs, mate_prefs):
+    compatibility_score = 0
+    total_preferences = 0
+
+    # Get user's sexuality, gender, NSFW, and age preferences
     user_sexuality = user_prefs.get("Sexuality", ["Other"])[0]
     user_gender = user_prefs.get("Gender", ["Other"])[0]
+    user_nsfw = user_prefs.get("NSFW Content", ["Other"])[0]
+    user_age = user_prefs.get("Age", ["Other"])[0]
 
-    # Find potential matches
-    matched_users = []
-    for user, preferences in user_preferences.items():
-        if user == username:
-            continue
-        # Check if the user meets the criteria for a match
-        mate_sexuality = preferences.get("Sexuality", ["Other"])[0]
-        mate_gender = preferences.get("Gender", ["Other"])[0]
+    # Get mate's sexuality, gender, NSFW, and age preferences
+    mate_sexuality = mate_prefs.get("Sexuality", ["Other"])[0]
+    mate_gender = mate_prefs.get("Gender", ["Other"])[0]
+    mate_nsfw = mate_prefs.get("NSFW Content", ["Other"])[0]
+    mate_age = mate_prefs.get("Age", ["Other"])[0]
 
-        # Check if user's gender preference matches mate's gender
-        if user_gender == "Male" and mate_gender not in ["Male", "Non-binary"]:
-            continue
-        elif user_gender == "Female" and mate_gender not in ["Female", "Non-binary"]:
-            continue
-        elif user_gender == "Non-binary" and mate_gender == "Male" and mate_sexuality != "Heterosexual":
-            continue
-        elif user_gender == "Non-binary" and mate_gender == "Female" and mate_sexuality != "Heterosexual":
-            continue
+    # Check sexual compatibility
+    if user_sexuality == "Heterosexual":
+        if mate_sexuality not in ["Female", "Non-binary"]:
+            return 0
+    elif user_sexuality == "Homosexual":
+        if mate_sexuality != user_gender:
+            return 0
+    elif user_sexuality == "Bisexual":
+        if mate_sexuality == "Asexual":
+            return 0
+    elif user_sexuality == "Asexual":
+        if mate_sexuality != "Asexual":
+            return 0
 
-        # Check if user's sexuality preference matches mate's sexuality
-        if user_sexuality == "Heterosexual" and mate_sexuality not in ["Female", "Non-binary"]:
-            continue
-        elif user_sexuality == "Homosexual" and mate_sexuality not in ["Male", "Non-binary"]:
-            continue
-        elif user_sexuality == "Bisexual" and mate_sexuality == "Asexual":
-            continue
-        elif user_sexuality == "Asexual" and mate_sexuality != "Asexual":
-            continue
-
-        matched_users.append((user, preferences))
-
-    if matched_users:
-        # Calculate compatibility score
-        compatibility_scores = {}
-        for matched_user, matched_preferences in matched_users:
-            compatibility_score = 0
-            # Adjust score based on matching preferences
-            for category, preferences in user_prefs.items():
-                if category in matched_preferences:
-                    for preference in preferences:
-                        if preference in matched_preferences[category]:
-                            compatibility_score += 1
-            compatibility_scores[matched_user] = compatibility_score
-
-        # Sort by compatibility score
-        sorted_matches = sorted(compatibility_scores.items(), key=lambda x: x[1], reverse=True)
-        best_match_user, best_match_score = sorted_matches[0]
-
-        # Send the best match
-        await ctx.send(f"Best match found for {username} with a compatibility score of {best_match_score}: {best_match_user}")
+    # Check gender compatibility
+    if user_gender == mate_gender:
+        # If both genders are the same, make sure mate is interested in the same gender
+        if mate_gender == "Non-binary":
+            if user_sexuality != "Bisexual":
+                return 0
+        elif mate_gender != user_sexuality:
+            return 0
     else:
-        await ctx.send("No match found.")
+        # If both genders are different, make sure mate is interested in the user's gender
+        if user_gender == "Male":
+            if mate_gender not in ["Male", "Non-binary"]:
+                return 0
+            elif user_sexuality == "Heterosexual" and mate_sexuality != "Female":
+                return 0
+        elif user_gender == "Female":
+            if mate_gender not in ["Female", "Non-binary"]:
+                return 0
+            elif user_sexuality == "Heterosexual" and mate_sexuality != "Male":
+                return 0
+        elif user_gender == "Non-binary":
+            if mate_gender != "Non-binary":
+                return 0
+            elif user_sexuality == "Heterosexual" and mate_sexuality not in ["Male", "Female"]:
+                return 0
 
+    # Check NSFW content compatibility
+    if user_nsfw != mate_nsfw:
+        return 0
+
+    # Check age compatibility
+    if user_age != mate_age:
+        return 0
+
+    # Compare preferences
+    for category, user_preferences in user_prefs.items():
+        if category in mate_prefs:
+            mate_preferences = mate_prefs[category]
+            for preference in user_preferences:
+                total_preferences += 1
+                if preference in mate_preferences:
+                    compatibility_score += 1
+
+    if total_preferences == 0:
+        return 0
+    else:
+        return (compatibility_score / total_preferences) * 100
+
+
+
+
+
+
+##--------------------------------------------------------
 @bot.command()
 async def helpme(ctx):
     help_message = (
         "**Welcome to Singularity Bot Help!**\n\n"
         "**1. Register Preferences:**\n"
-        "Use `..register` command to set up your dating preferences.\n\n"
+        "Use `/register` command to set up your dating preferences.\n\n"
         "**2. Save Preferences:**\n"
-        "Use `..save` command to save your preferences to a file.\n\n"
+        "Use `/save` command to save your preferences to a file.\n\n"
         "**3. Find a Match:**\n"
-        "Use `..matchme` command to find a match based on your preferences.\n\n"
+        "Use `/matchme` command to find a match based on your preferences.\n\n"
         "**Command Usage:**\n"
-        "`..register` - Start the preference setup process.\n"
-        "`..save` - Save your preferences to a file.\n"
-        "`..matchme` - Find a match based on your preferences.\n"
-        "`..help` - Display this help message.\n\n"
+        "`/register` - Start the preference setup process.\n"
+        "`/save` - Save your preferences to a file.\n"
+        "`/matchme` - Find a match based on your preferences.\n"
+        "`/help` - Display this help message.\n"
+        "`/listusers` - Displays a list of all users.\n"
+        "`/forget` - Remove all of your data.\n\n"
+        "`/userview` - Give the users discord tag and see their data.\n\n"
         "**Note:**\n"
         "Please ensure you have set up your preferences before using the match command.\n"
-        "For further assistance, contact the developer."
+        "For further assistance, contact the developer alerthi_there."
     )
-    await ctx.send(help_message)
+    embed = discord.Embed(title="Singularity Bot Help", description=help_message, color=0x00ff00)
+    await ctx.send(embed=embed)
+
 
 # Command to forget user data
 @bot.command()
@@ -423,5 +515,31 @@ async def forget(ctx):
     except FileNotFoundError:
         await ctx.send(f"No data found for {username}.")
 
+@bot.command()
+async def listusers(ctx):
+    file_list = [filename[:-16] for filename in os.listdir() if filename.endswith("_preferences.txt")]
+    if file_list:
+        users = "\n".join(file_list)
+        await ctx.send(f"Registered users:\n{users}")
+    else:
+        await ctx.send("No registered users found.")
 
-bot.run("MTIzMzI3ODYxNjk5ODExNzQ2OQ.Ge7-gn.u4wKC5sp_JJt2eGIg-8hgjXDcc4gh5_g1sz8xc")
+@bot.command()
+async def userview(ctx, username: str):
+    user_prefs = load_user_prefs(username)
+    if not user_prefs:
+        await ctx.send(f"No preferences found for {username}.")
+        return
+
+    # Format user preferences for display
+    preferences_text = ""
+    for category, preferences in user_prefs.items():
+        preferences_text += f"{category}:\n"
+        for preference in preferences:
+            preferences_text += f"  - {preference}\n"
+
+    await ctx.send(f"**Preferences for {username}:**\n```{preferences_text}```")
+
+
+
+bot.run("YOUR TOKEN HERE")
